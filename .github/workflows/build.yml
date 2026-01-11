@@ -37,12 +37,23 @@ jobs:
         vcpkg integrate install
     
     - name: Build solution
+      shell: pwsh
       run: |
+        $vsPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe | Select-Object -First 1
+        if (-not $vsPath) {
+          $vsPath = & "${env:ProgramFiles}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe | Select-Object -First 1
+        }
+        if (-not $vsPath) {
+          Write-Error "MSBuild not found"
+          exit 1
+        }
+        
         $solutionPath = "MIUIThemeDownlaoder.sln"
         $platform = "${{ matrix.platform }}"
         $configuration = "${{ matrix.configuration }}"
         
-        msbuild $solutionPath `
+        Write-Host "Using MSBuild at: $vsPath"
+        & $vsPath $solutionPath `
           /p:Configuration=$configuration `
           /p:Platform=$platform `
           /m `
