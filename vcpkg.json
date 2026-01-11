@@ -1,0 +1,9 @@
+{
+  "dependencies": [
+    "wxwidgets",
+    "libcurl",
+    "jsoncpp"
+  ],
+  "builtin-baseline": "2024.01.12"
+}
+
