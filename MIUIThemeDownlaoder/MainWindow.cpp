@@ -50,7 +50,7 @@ private:
     Downloader* mDownloader = nullptr;
     FILE* mThemeFile = nullptr;
     bool downloadLinkValid = false;
-    std::string mVersion = "V12";
+    std::string mVersion = "V14";
 };
 enum
 {
@@ -63,7 +63,7 @@ wxEND_EVENT_TABLE()
 wxIMPLEMENT_APP(MyApp);
 bool MyApp::OnInit()
 {
-    MyFrame* frame = new MyFrame("MIUIÖ÷ÌâÏÂÔØÆ÷");
+    MyFrame* frame = new MyFrame("MIUIï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½");
     frame->Show(true);
     return true;
 }
@@ -72,20 +72,20 @@ MyFrame::MyFrame(const wxString& title)
 {
     SetIcon(wxICON(appicon));
     wxMenu* menuFile = new wxMenu;
-    menuFile->Append(wxID_EXIT,"ÍË³ö...\tCtrl+Q");
+    menuFile->Append(wxID_EXIT,"ï¿½Ë³ï¿½...\tCtrl+Q");
     wxMenu* menuHelp = new wxMenu;
-    menuHelp->Append(wxID_ABOUT,"¹ØÓÚ...\tCtrl+H");
+    menuHelp->Append(wxID_ABOUT,"ï¿½ï¿½ï¿½ï¿½...\tCtrl+H");
     wxMenuBar* menuBar = new wxMenuBar;
-    menuBar->Append(menuFile, "&ÎÄ¼þ");
-    menuBar->Append(menuHelp, "&°ïÖú");
+    menuBar->Append(menuFile, "&ï¿½Ä¼ï¿½");
+    menuBar->Append(menuHelp, "&ï¿½ï¿½ï¿½ï¿½");
     SetMenuBar(menuBar);
     CreateStatusBar();
-    SetStatusText("»¶Ó­Ê¹ÓÃMIUIÖ÷ÌâÏÂÔØÆ÷");
+    SetStatusText("ï¿½ï¿½Ó­Ê¹ï¿½ï¿½MIUIï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½");
     
     mPanel = new wxPanel(this,wxID_ANY,wxDefaultPosition,FromDIP(wxSize(480,-1)));
     mDownloader = new Downloader(this);
     mMainlayoutContainer = new wxBoxSizer(wxVERTICAL);
-    mThemeUrlHint = new wxStaticText(mPanel, wxID_ANY, "MIUIÖ÷ÌâÁ´½Ó");
+    mThemeUrlHint = new wxStaticText(mPanel, wxID_ANY, "MIUIï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½");
     wxSize defaultWindowSize = wxDefaultSize;
     wxSize size = FromDIP(wxSize(460, defaultWindowSize.GetHeight()));
     mThemeUrl = new wxTextCtrl(mPanel, wxID_ANY, "", wxDefaultPosition, size, wxTE_PROCESS_ENTER);
@@ -93,7 +93,7 @@ MyFrame::MyFrame(const wxString& title)
         downloadLinkValid = false;
         mDownloader->tryget(mThemeUrl->GetLineText(0).ToStdString(), GET_DOWNLOAD_LINK_URL,mVersion);
         });
-    mThemeDownloadUrlHint = new wxStaticText(mPanel, wxID_ANY, "Ö÷ÌâÏÂÔØÁ´½Ó");
+    mThemeDownloadUrlHint = new wxStaticText(mPanel, wxID_ANY, "ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½");
     mThemeDownloadUrl = new wxTextCtrl(mPanel, wxID_ANY, "", wxDefaultPosition, size, wxTE_READONLY);
 
     int borderSize = GetDPIScaleFactor() * 10;
@@ -112,6 +112,8 @@ MyFrame::MyFrame(const wxString& title)
     choice.Add("V10");
     choice.Add("V11");
     choice.Add("V12");
+    choice.Add("V13");
+    choice.Add("V14");
     mVersionSelector = new wxRadioBox(mPanel, ID_RADIOBUTTON_GROUP, "", wxDefaultPosition, size, choice);
     mVersionSelector->SetSelection(choice.size()-1);
     mVersionSelector->Bind(wxEVT_RADIOBOX, [&](wxCommandEvent& event) {
@@ -134,10 +136,10 @@ MyFrame::MyFrame(const wxString& title)
     wxBoxSizer* buttonsContainer = new wxBoxSizer(wxHORIZONTAL);
     int horizonSpace = GetDPIScaleFactor() * 2;
     wxSize buttonSize = FromDIP(wxSize((480 - 20 - 2 * 3) / 4,defaultWindowSize.GetHeight()));
-    openStore = new wxButton(mPanel, wxID_ANY, "´ò¿ªÖ÷ÌâÉÌµê",wxDefaultPosition, buttonSize);
-    getDownloadLink = new wxButton(mPanel, wxID_ANY, "»ñÈ¡ÏÂÔØÁ´½Ó", wxDefaultPosition, buttonSize);
-    copyDownloadLink = new wxButton(mPanel, wxID_ANY, "¸´ÖÆÏÂÔØÁ´½Ó", wxDefaultPosition, buttonSize);
-    downloadThemeAsFile = new wxButton(mPanel, wxID_ANY, "ÏÂÔØ", wxDefaultPosition, buttonSize);
+    openStore = new wxButton(mPanel, wxID_ANY, "ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ìµï¿½",wxDefaultPosition, buttonSize);
+    getDownloadLink = new wxButton(mPanel, wxID_ANY, "ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½", wxDefaultPosition, buttonSize);
+    copyDownloadLink = new wxButton(mPanel, wxID_ANY, "ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½", wxDefaultPosition, buttonSize);
+    downloadThemeAsFile = new wxButton(mPanel, wxID_ANY, "ï¿½ï¿½ï¿½ï¿½", wxDefaultPosition, buttonSize);
     openStore->Bind(wxEVT_BUTTON, [&](wxCommandEvent& event) {
         ShellExecute(NULL, L"open", L"http://zhuti.xiaomi.com/", NULL, NULL, SW_SHOWNORMAL);
         });
@@ -159,7 +161,7 @@ MyFrame::MyFrame(const wxString& title)
         {
             wxclipboard.SetData(new wxTextDataObject(mThemeDownloadUrl->GetLineText(0)));
             wxclipboard.Close();
-            wxNotificationMessage notification("¿½±´³É¹¦", mThemeDownloadUrl->GetLineText(0),mPanel);
+            wxNotificationMessage notification("ï¿½ï¿½ï¿½ï¿½ï¿½É¹ï¿½", mThemeDownloadUrl->GetLineText(0),mPanel);
             // auto hide
             notification.Show(-1);
         }
@@ -205,8 +207,8 @@ void MyFrame::OnExit(wxCommandEvent& event)
 void MyFrame::OnAbout(wxCommandEvent& event)
 {
     wxAboutDialogInfo aboutInfo;
-    aboutInfo.SetName("¹ØÓÚ±¾³ÌÐò");
-    aboutInfo.SetDescription(_("Ð¡Ã×Ö÷ÌâÀëÏßÏÂÔØÆ÷"));
+    aboutInfo.SetName("ï¿½ï¿½ï¿½Ú±ï¿½ï¿½ï¿½ï¿½ï¿½");
+    aboutInfo.SetDescription(_("Ð¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½"));
     aboutInfo.SetCopyright("(C) 2018-2022");
     aboutInfo.SetWebSite("https://github.com/BDZNH/");
     aboutInfo.AddDeveloper("BDZNH");
@@ -222,25 +224,25 @@ void MyFrame::onMessage(const std::string& str, MESSAGE_TYPE type)
         downloadLinkValid = true;
         break;
     case GET_LINK_FAILED:
-        wxMessageBox(str, "¾¯¸æ", wxOK | wxICON_WARNING);
+        wxMessageBox(str, "ï¿½ï¿½ï¿½ï¿½", wxOK | wxICON_WARNING);
         break;
     case DOWNLAOD_SUCCESS:
-        wxMessageBox("ÏÂÔØ³É¹¦", "¾¯¸æ", wxOK | wxICON_INFORMATION);
+        wxMessageBox("ï¿½ï¿½ï¿½Ø³É¹ï¿½", "ï¿½ï¿½ï¿½ï¿½", wxOK | wxICON_INFORMATION);
         break;
     case DOWNLOAD_FAILED:
-        {wxMessageBox(str, "¾¯¸æ", wxOK | wxICON_WARNING); }
+        {wxMessageBox(str, "ï¿½ï¿½ï¿½ï¿½", wxOK | wxICON_WARNING); }
         break;
     case INVALID_MIUI_THEME_URL:
     {
         std::string msg;
         if (str == "") {
-            msg = "ÇëÊäÈëÖ÷ÌâÁ´½Ó";
+            msg = "ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½";
         }
         else 
         {
-            msg = "\"" + str + "\"²»ÊÇÓÐÐ§µÄÖ÷ÌâÁ´½Ó";
+            msg = "\"" + str + "\"ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½";
         }
-        wxMessageBox(msg, "¾¯¸æ", wxOK | wxICON_WARNING);
+        wxMessageBox(msg, "ï¿½ï¿½ï¿½ï¿½", wxOK | wxICON_WARNING);
     }
         break;
     default:
@@ -251,7 +253,7 @@ void MyFrame::onMessage(const std::string& str, MESSAGE_TYPE type)
 void MyFrame::onProgress(size_t total, size_t current)
 {
     if (total != 0) {
-        // Ó¦¸Ã²»»áÒç³ö°É£¬±Ï¾¹Ö»ÊÇÒ»¸öÖ÷Ìâ°ü
+        // Ó¦ï¿½Ã²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½É£ï¿½ï¿½Ï¾ï¿½Ö»ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         mGauge->SetValue((current >= total) ? 100 : (current * 100 / total));
     }
 }
@@ -286,7 +288,7 @@ FILE* MyFrame::onSave(std::string filename)
     mThemeFile = fopen(saveFileDialog.GetPath(),"wb+");
     if (!mThemeFile)
     {
-        wxMessageBox("ÎÞÐ§µÄ±£´æÎ»ÖÃ", "¾¯¸æ", wxOK | wxICON_WARNING);
+        wxMessageBox("ï¿½ï¿½Ð§ï¿½Ä±ï¿½ï¿½ï¿½Î»ï¿½ï¿½", "ï¿½ï¿½ï¿½ï¿½", wxOK | wxICON_WARNING);
         return nullptr;
     }
     return mThemeFile;
