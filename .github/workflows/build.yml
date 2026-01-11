@@ -1,0 +1,95 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    strategy:
+      matrix:
+        platform: [x64]
+        configuration: [Release]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup vcpkg
+      uses: microsoft/setup-vcpkg@v3
+    
+    - name: Install dependencies
+      run: |
+        vcpkg install wxwidgets:x64-windows libcurl:x64-windows jsoncpp:x64-windows
+    
+    - name: Integrate vcpkg with Visual Studio
+      run: |
+        vcpkg integrate install
+    
+    - name: Build solution
+      run: |
+        $solutionPath = "MIUIThemeDownlaoder.sln"
+        $platform = "${{ matrix.platform }}"
+        $configuration = "${{ matrix.configuration }}"
+        
+        msbuild $solutionPath `
+          /p:Configuration=$configuration `
+          /p:Platform=$platform `
+          /m `
+          /v:minimal
+    
+    - name: Find built executable
+      id: find-exe
+      shell: pwsh
+      run: |
+        $rootPath = (Get-Location).Path
+        Write-Host "Searching for executable in: $rootPath"
+        
+        # Common output paths for Visual Studio projects
+        $searchPaths = @(
+          "MIUIThemeDownlaoder\${{ matrix.configuration }}\${{ matrix.platform }}",
+          "MIUIThemeDownlaoder\x64\${{ matrix.configuration }}",
+          "MIUIThemeDownlaoder\Release\x64",
+          "MIUIThemeDownlaoder"
+        )
+        
+        $exePath = $null
+        foreach ($searchPath in $searchPaths) {
+          if (Test-Path $searchPath) {
+            $found = Get-ChildItem -Path $searchPath -Filter "*.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($found) {
+              $exePath = $found
+              Write-Host "Found executable in: $searchPath"
+              break
+            }
+          }
+        }
+        
+        # Fallback: search recursively
+        if (-not $exePath) {
+          $exePath = Get-ChildItem -Path "." -Filter "MIUIThemeDownlaoder.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+        }
+        
+        if ($exePath) {
+          $relativePath = $exePath.FullName.Replace("$rootPath\", "").Replace("$rootPath", "")
+          echo "exe-path=$relativePath" >> $env:GITHUB_OUTPUT
+          echo "exe-name=$($exePath.Name)" >> $env:GITHUB_OUTPUT
+          Write-Host "Executable found: $relativePath"
+        } else {
+          Write-Error "Executable not found. Listing all .exe files:"
+          Get-ChildItem -Path "." -Filter "*.exe" -Recurse -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_.FullName }
+          exit 1
+        }
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: MIUIThemeDownloader-${{ matrix.platform }}-${{ matrix.configuration }}
+        path: ${{ steps.find-exe.outputs.exe-path }}
+        retention-days: 30
+
