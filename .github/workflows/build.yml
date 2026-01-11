@@ -26,6 +26,7 @@ jobs:
         vcpkgDirectory: '${{ github.workspace }}/vcpkg'
         vcpkgJsonGlob: '**/vcpkg.json'
         runVcpkgInstall: true
+      continue-on-error: false
     
     - name: Integrate vcpkg with Visual Studio
       shell: pwsh
@@ -109,44 +110,68 @@ jobs:
         Copy-Item -Path $exePath.FullName -Destination $packageDir -Force
         
         # Copy required DLLs from vcpkg
-        $vcpkgInstalled = "$vcpkgRoot\installed\x64-windows\bin"
-        if (Test-Path $vcpkgInstalled) {
-          Write-Host "Copying DLLs from: $vcpkgInstalled"
-          
-          # Copy jsoncpp DLL
-          $jsoncppDll = Get-ChildItem -Path $vcpkgInstalled -Filter "jsoncpp*.dll" -ErrorAction SilentlyContinue
-          if ($jsoncppDll) {
-            Copy-Item -Path $jsoncppDll.FullName -Destination $packageDir -Force
-            Write-Host "Copied: $($jsoncppDll.Name)"
+        $vcpkgInstalledBin = "$vcpkgRoot\installed\x64-windows\bin"
+        $vcpkgInstalledDebugBin = "$vcpkgRoot\installed\x64-windows\debug\bin"
+        
+        Write-Host "Searching for DLLs in vcpkg installed directories..."
+        
+        # Function to copy DLLs from a directory
+        function Copy-DllsFromDirectory {
+          param($SourceDir, $TargetDir, $Description)
+          if (Test-Path $SourceDir) {
+            Write-Host "Copying DLLs from $Description : $SourceDir"
+            $dlls = Get-ChildItem -Path $SourceDir -Filter "*.dll" -Recurse -ErrorAction SilentlyContinue
+            foreach ($dll in $dlls) {
+              $destPath = Join-Path $TargetDir $dll.Name
+              Copy-Item -Path $dll.FullName -Destination $destPath -Force
+              Write-Host "  Copied: $($dll.Name)"
+            }
+            return $dlls.Count
+          } else {
+            Write-Host "  Directory not found: $SourceDir"
+            return 0
           }
-          
-          # Copy curl DLL
-          $curlDll = Get-ChildItem -Path $vcpkgInstalled -Filter "*curl*.dll" -ErrorAction SilentlyContinue
-          if ($curlDll) {
-            Copy-Item -Path $curlDll.FullName -Destination $packageDir -Force
-            Write-Host "Copied: $($curlDll.Name)"
-          }
-          
-          # Copy wxWidgets DLLs
-          $wxDlls = Get-ChildItem -Path $vcpkgInstalled -Filter "wx*.dll" -ErrorAction SilentlyContinue
-          if ($wxDlls) {
-            foreach ($dll in $wxDlls) {
-              Copy-Item -Path $dll.FullName -Destination $packageDir -Force
-              Write-Host "Copied: $($dll.Name)"
+        }
+        
+        # Copy from release bin directory
+        $count1 = Copy-DllsFromDirectory -SourceDir $vcpkgInstalledBin -TargetDir $packageDir -Description "release bin"
+        
+        # Copy from debug bin directory (some DLLs might be there)
+        $count2 = Copy-DllsFromDirectory -SourceDir $vcpkgInstalledDebugBin -TargetDir $packageDir -Description "debug bin"
+        
+        # Also check for DLLs in individual package directories
+        $packagesDir = "$vcpkgRoot\installed\x64-windows"
+        if (Test-Path $packagesDir) {
+          Write-Host "Searching in package directories..."
+          $packageDirs = Get-ChildItem -Path $packagesDir -Directory -ErrorAction SilentlyContinue
+          foreach ($pkgDir in $packageDirs) {
+            $binDirs = @(
+              "$($pkgDir.FullName)\bin",
+              "$($pkgDir.FullName)\tools\bin",
+              "$($pkgDir.FullName)\debug\bin"
+            )
+            foreach ($binDir in $binDirs) {
+              if (Test-Path $binDir) {
+                $dlls = Get-ChildItem -Path $binDir -Filter "*.dll" -ErrorAction SilentlyContinue
+                foreach ($dll in $dlls) {
+                  $destPath = Join-Path $packageDir $dll.Name
+                  if (-not (Test-Path $destPath)) {
+                    Copy-Item -Path $dll.FullName -Destination $destPath -Force
+                    Write-Host "  Copied from package: $($dll.Name)"
+                  }
+                }
+              }
             }
           }
-          
-          # Copy all other DLLs that might be needed
-          $allDlls = Get-ChildItem -Path $vcpkgInstalled -Filter "*.dll" -ErrorAction SilentlyContinue
-          foreach ($dll in $allDlls) {
-            $destPath = Join-Path $packageDir $dll.Name
-            if (-not (Test-Path $destPath)) {
-              Copy-Item -Path $dll.FullName -Destination $packageDir -Force
-              Write-Host "Copied: $($dll.Name)"
-            }
-          }
-        } else {
-          Write-Warning "vcpkg installed directory not found: $vcpkgInstalled"
+        }
+        
+        Write-Host "Total DLLs copied: $count1 from release, $count2 from debug"
+        
+        # List all DLLs in package directory
+        $finalDlls = Get-ChildItem -Path $packageDir -Filter "*.dll" -ErrorAction SilentlyContinue
+        Write-Host "Final DLLs in package:"
+        foreach ($dll in $finalDlls) {
+          Write-Host "  - $($dll.Name)"
         }
         
         # Create zip package
