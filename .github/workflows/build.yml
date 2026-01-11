@@ -63,11 +63,15 @@ jobs:
           /m `
           /v:minimal
     
-    - name: Find built executable
-      id: find-exe
+    - name: Find built executable and copy dependencies
+      id: package
       shell: pwsh
       run: |
         $rootPath = (Get-Location).Path
+        $vcpkgRoot = "${{ env.RUNVCPKG_VCPKG_ROOT }}"
+        $packageDir = "package"
+        New-Item -ItemType Directory -Force -Path $packageDir | Out-Null
+        
         Write-Host "Searching for executable in: $rootPath"
         
         # Common output paths for Visual Studio projects
@@ -95,21 +99,68 @@ jobs:
           $exePath = Get-ChildItem -Path "." -Filter "MIUIThemeDownlaoder.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
         }
         
-        if ($exePath) {
-          $relativePath = $exePath.FullName.Replace("$rootPath\", "").Replace("$rootPath", "")
-          echo "exe-path=$relativePath" >> $env:GITHUB_OUTPUT
-          echo "exe-name=$($exePath.Name)" >> $env:GITHUB_OUTPUT
-          Write-Host "Executable found: $relativePath"
-        } else {
+        if (-not $exePath) {
           Write-Error "Executable not found. Listing all .exe files:"
           Get-ChildItem -Path "." -Filter "*.exe" -Recurse -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_.FullName }
           exit 1
         }
+        
+        Write-Host "Copying executable: $($exePath.FullName)"
+        Copy-Item -Path $exePath.FullName -Destination $packageDir -Force
+        
+        # Copy required DLLs from vcpkg
+        $vcpkgInstalled = "$vcpkgRoot\installed\x64-windows\bin"
+        if (Test-Path $vcpkgInstalled) {
+          Write-Host "Copying DLLs from: $vcpkgInstalled"
+          
+          # Copy jsoncpp DLL
+          $jsoncppDll = Get-ChildItem -Path $vcpkgInstalled -Filter "jsoncpp*.dll" -ErrorAction SilentlyContinue
+          if ($jsoncppDll) {
+            Copy-Item -Path $jsoncppDll.FullName -Destination $packageDir -Force
+            Write-Host "Copied: $($jsoncppDll.Name)"
+          }
+          
+          # Copy curl DLL
+          $curlDll = Get-ChildItem -Path $vcpkgInstalled -Filter "*curl*.dll" -ErrorAction SilentlyContinue
+          if ($curlDll) {
+            Copy-Item -Path $curlDll.FullName -Destination $packageDir -Force
+            Write-Host "Copied: $($curlDll.Name)"
+          }
+          
+          # Copy wxWidgets DLLs
+          $wxDlls = Get-ChildItem -Path $vcpkgInstalled -Filter "wx*.dll" -ErrorAction SilentlyContinue
+          if ($wxDlls) {
+            foreach ($dll in $wxDlls) {
+              Copy-Item -Path $dll.FullName -Destination $packageDir -Force
+              Write-Host "Copied: $($dll.Name)"
+            }
+          }
+          
+          # Copy all other DLLs that might be needed
+          $allDlls = Get-ChildItem -Path $vcpkgInstalled -Filter "*.dll" -ErrorAction SilentlyContinue
+          foreach ($dll in $allDlls) {
+            $destPath = Join-Path $packageDir $dll.Name
+            if (-not (Test-Path $destPath)) {
+              Copy-Item -Path $dll.FullName -Destination $packageDir -Force
+              Write-Host "Copied: $($dll.Name)"
+            }
+          }
+        } else {
+          Write-Warning "vcpkg installed directory not found: $vcpkgInstalled"
+        }
+        
+        # Create zip package
+        $zipPath = "MIUIThemeDownloader-${{ matrix.platform }}-${{ matrix.configuration }}.zip"
+        Compress-Archive -Path "$packageDir\*" -DestinationPath $zipPath -Force
+        Write-Host "Created package: $zipPath"
+        
+        echo "package-path=$zipPath" >> $env:GITHUB_OUTPUT
+        echo "package-dir=$packageDir" >> $env:GITHUB_OUTPUT
     
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
         name: MIUIThemeDownloader-${{ matrix.platform }}-${{ matrix.configuration }}
-        path: ${{ steps.find-exe.outputs.exe-path }}
+        path: ${{ steps.package.outputs.package-path }}
         retention-days: 30
 
