@@ -25,16 +25,14 @@ jobs:
       with:
         vcpkgDirectory: '${{ github.workspace }}/vcpkg'
         vcpkgJsonGlob: '**/vcpkg.json'
-    
-    - name: Install dependencies
-      shell: pwsh
-      run: |
-        vcpkg install --triplet x64-windows
+        runVcpkgInstall: true
     
     - name: Integrate vcpkg with Visual Studio
       shell: pwsh
       run: |
         vcpkg integrate install
+        $env:VCPKG_ROOT = "${{ env.RUNVCPKG_VCPKG_ROOT }}"
+        echo "VCPKG_ROOT=$env:VCPKG_ROOT" >> $env:GITHUB_ENV
     
     - name: Build solution
       shell: pwsh
@@ -53,9 +51,15 @@ jobs:
         $configuration = "${{ matrix.configuration }}"
         
         Write-Host "Using MSBuild at: $vsPath"
+        $vcpkgRoot = "${{ env.RUNVCPKG_VCPKG_ROOT }}"
+        $vcpkgToolchain = "$vcpkgRoot\scripts\buildsystems\vcpkg.cmake"
+        
         & $vsPath $solutionPath `
           /p:Configuration=$configuration `
           /p:Platform=$platform `
+          /p:VcpkgEnableManifest=true `
+          /p:VCPKG_ROOT=$vcpkgRoot `
+          /p:VcpkgToolchainFile=$vcpkgToolchain `
           /m `
           /v:minimal
     
